@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>待办清单</title>
+    <style>
+        /* 全局样式：淡蓝到淡紫渐变背景 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* 主容器：居中白色卡片 */
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 480px;
+            padding: 30px;
+        }
+
+        /* 标题 */
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 24px;
+            font-size: 24px;
+        }
+
+        /* 输入区域 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #todoInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #todoInput:focus {
+            border-color: #667eea;
+        }
+
+        /* 按钮通用样式 */
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        /* 添加按钮：渐变背景 */
+        #addBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        #addBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        /* 任务列表 */
+        .todo-list {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+
+        /* 自定义滚动条 */
+        .todo-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .todo-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .todo-list::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        /* 单个任务项 */
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+
+        .todo-item:hover {
+            background: #e9ecef;
+            transform: translateX(4px);
+        }
+
+        /* 复选框 */
+        .todo-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        /* 任务文本 */
+        .todo-text {
+            flex: 1;
+            font-size: 16px;
+            color: #333;
+            word-break: break-all;
+        }
+
+        /* 已完成状态：划线 */
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        /* 删除按钮 */
+        .delete-btn {
+            background: #ff4757;
+            color: white;
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+
+        .delete-btn:hover {
+            background: #ff6b7a;
+            transform: scale(1.05);
+        }
+
+        /* 底部统计和清除按钮 */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .stats {
+            color: #666;
+            font-size: 14px;
+        }
+
+        #clearBtn {
+            background: #ffa502;
+            color: white;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        #clearBtn:hover {
+            background: #ffb840;
+            transform: translateY(-1px);
+        }
+
+        /* 空状态提示 */
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 待办清单</h1>
+        
+        <!-- 输入区域 -->
+        <div class="input-group">
+            <input type="text" id="todoInput" placeholder="今天要做什么？" maxlength="50">
+            <button id="addBtn">添加</button>
+        </div>
+
+        <!-- 任务列表 -->
+        <ul class="todo-list" id="todoList"></ul>
+
+        <!-- 底部统计和操作 -->
+        <div class="footer">
+            <span class="stats" id="stats">已完成 0 / 总共 0</span>
+            <button id="clearBtn">清除已完成</button>
+        </div>
+    </div>
+
+    <script>
+        // 获取 DOM 元素
+        const todoInput = document.getElementById('todoInput');
+        const addBtn = document.getElementById('addBtn');
+        const todoList = document.getElementById('todoList');
+        const stats = document.getElementById('stats');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // 从 localStorage 加载数据，如果没有则初始化空数组
+        let todos = JSON.parse(localStorage.getItem('todos')) || [];
+
+        // 保存数据到 localStorage
+        function saveTodos() {
+            localStorage.setItem('todos', JSON.stringify(todos));
+        }
+
+        // 渲染任务列表
+        function render() {
+            // 清空当前列表
+            todoList.innerHTML = '';
+            
+            // 统计变量
+            let completedCount = 0;
+
+            // 空状态显示
+            if (todos.length === 0) {
+                todoList.innerHTML = '<li class="empty-state">暂无任务，添加一个吧！</li>';
+            }
+
+            // 遍历生成任务项
+            todos.forEach((todo, index) => {
+                if (todo.completed) completedCount++;
+
+                const li = document.createElement('li');
+                li.className = 'todo-item' + (todo.completed ? ' completed' : '');
+                
+                // 复选框
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'todo-checkbox';
+                checkbox.checked = todo.completed;
+                checkbox.onchange = () => toggleTodo(index);
+                
+                // 任务文本
+                const span = document.createElement('span');
+                span.className = 'todo-text';
+                span.textContent = todo.text;
+                
+                // 删除按钮
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = '删除';
+                deleteBtn.onclick = () => deleteTodo(index);
+                
+                // 组装元素
+                li.appendChild(checkbox);
+                li.appendChild(span);
+                li.appendChild(deleteBtn);
+                todoList.appendChild(li);
+            });
+
+            // 更新统计信息
+            stats.textContent = `已完成 ${completedCount} / 总共 ${todos.length}`;
+        }
+
+        // 添加新任务
+        function addTodo() {
+            const text = todoInput.value.trim();
+            if (text === '') {
+                alert('请输入任务内容！');
+                return;
+            }
+            
+            todos.push({
+                text: text,
+                completed: false
+            });
+            
+            todoInput.value = '';
+            todoInput.focus();
+            saveTodos();
+            render();
+        }
+
+        // 切换完成状态
+        function toggleTodo(index) {
+            todos[index].completed = !todos[index].completed;
+            saveTodos();
+            render();
+        }
+
+        // 删除单个任务
+        function deleteTodo(index) {
+            if (confirm('确定要删除这个任务吗？')) {
+                todos.splice(index, 1);
+                saveTodos();
+                render();
+            }
+        }
+
+        // 清除所有已完成任务
+        function clearCompleted() {
+            const completedCount = todos.filter(t => t.completed).length;
+            if (completedCount === 0) {
+                alert('没有已完成的任务！');
+                return;
+            }
+            
+            if (confirm(`确定要清除 ${completedCount} 个已完成任务吗？`)) {
+                todos = todos.filter(t => !t.completed);
+                saveTodos();
+                render();
+            }
+        }
+
+        // 事件监听
+        addBtn.addEventListener('click', addTodo);
+        
+        // 支持回车键添加
+        todoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTodo();
+            }
+        });
+
+        clearBtn.addEventListener('click', clearCompleted);
+
+        // 初始渲染
+        render();
+    </script>
+</body>
+</html>
